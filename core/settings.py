@@ -25,12 +25,14 @@ SECRET_KEY = 'django-insecure-^&^s@en+s58c!gagcs8sw%qm^9$sjwy7xzg=m%xs=vf*tsh+nn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [
-    '*',
-    'airsense-ones.onrender.com',
-    '127.0.0.1',
-    'localhost'
-    ]
+import os
+
+ALLOWED_HOSTS = os.environ.get(
+    'ALLOWED_HOSTS',
+    'airsense-ones.onrender.com,127.0.0.1,localhost'
+).split(',')
+
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 
 # Application definition
