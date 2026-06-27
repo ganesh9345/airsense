@@ -1,0 +1,284 @@
+{% extends 'airquality/base.html' %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<div class="row justify-content-center mt-4 text-center">
+    <div class="col-md-8">
+        <h1 style="color:#00d4ff; font-size:3rem;">🌫️ AirSense</h1>
+        <p style="color:#aaa; font-size:1.2rem;">
+            AI-Powered Air Quality Prediction & Alert System
+        </p>
+        <hr style="border-color:#00d4ff;">
+    </div>
+</div>
+
+<!-- Search Box -->
+<div class="row justify-content-center mt-3">
+    <div class="col-md-6">
+        <div class="card p-4 text-center">
+            <h4 class="card-title">🔍 Check Air Quality</h4>
+            <div class="input-group mt-3">
+                <input type="text" id="cityInput"
+                       class="form-control"
+                       placeholder="Enter city name (e.g. Chennai)"
+                       style="background:#0f1923; color:white; border:1px solid #00d4ff;">
+                <button class="btn btn-primary" onclick="fetchAQI()">
+                    Check Now
+                </button>
+            </div>
+            <div id="loadingMsg" style="display:none; margin-top:10px;">
+                <span style="color:#00d4ff;">⏳ Fetching data...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Result Box -->
+<div class="row mt-4 justify-content-center" id="resultBox" style="display:none;">
+    <div class="col-12 col-md-10 col-lg-8 mx-auto">
+        <div class="card p-4 text-center">
+            <h4 class="card-title text-center">📊 Air Quality Result</h4>
+
+            <!-- Row 1 -->
+            <div class="row justify-content-center text-center mt-3">
+                <div class="col-6 col-md-3 mb-3">
+                    <h6 style="color:#aaa;">City</h6>
+                    <h4 id="cityName" style="color:#00d4ff;">-</h4>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <h6 style="color:#aaa;">AQI</h6>
+                    <h4 id="aqiValue">-</h4>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <h6 style="color:#aaa;">Status</h6>
+                    <h4 id="aqiStatus">-</h4>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <h6 style="color:#aaa;">PM2.5</h6>
+                    <h4 id="pm25Value" style="color:#fff;">-</h4>
+                    <small style="color:#aaa;">µg/m³</small>
+                </div>
+            </div>
+
+            <hr style="border-color:#00d4ff33;">
+
+            <!-- Row 2: PM10, CO, NO2 -->
+            <div class="row justify-content-center text-center mt-2">
+                <div class="col-md-4 mb-3">
+                    <div class="card p-3" style="background:#0f1923;">
+                        <h6 style="color:#aaa;">PM10</h6>
+                        <h4 id="pm10Value" style="color:#ffffff;">-</h4>
+                        <small style="color:#aaa;">µg/m³</small>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card p-3" style="background:#0f1923;">
+                        <h6 style="color:#aaa;">CO</h6>
+                        <h4 id="coValue" style="color:#ffffff;">-</h4>
+                        <small style="color:#aaa;">µg/m³</small>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card p-3" style="background:#0f1923;">
+                        <h6 style="color:#aaa;">NO2</h6>
+                        <h4 id="no2Value" style="color:#ffffff;">-</h4>
+                        <small style="color:#aaa;">µg/m³</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="text-center mt-3">
+                <button onclick="viewHistory()"
+                        class="btn btn-primary me-2">
+                    📈 View Full History
+                </button>
+                <a href="/dashboard/"
+                   class="btn btn-outline-info">
+                    📊 Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Section (shown when View Full History clicked) -->
+<div class="row mt-4 justify-content-center"
+     id="historySection" style="display:none;">
+    <div class="col-12 col-md-10 col-lg-8 mx-auto">
+        <div class="card p-4">
+            <h5 class="card-title text-center">
+                📈 Air Quality History — 
+                <span id="historyCity" style="color:#00d4ff;"></span>
+            </h5>
+            <div class="table-responsive mt-3">
+                <table class="table table-dark table-striped text-center">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>AQI</th>
+                            <th>PM2.5</th>
+                            <th>PM10</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AQI Guide -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card p-4 text-center">
+            <h5 class="card-title">📋 AQI Guide</h5>
+            <div class="row justify-content-center mt-2">
+                <div class="col-6 col-md-3 mb-2">
+                    <span class="badge d-block py-2"
+                          style="background:#00e676; color:#000;">
+                        0–50<br>Good
+                    </span>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <span class="badge d-block py-2"
+                          style="background:#ffeb3b; color:#000;">
+                        51–100<br>Moderate
+                    </span>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <span class="badge d-block py-2"
+                          style="background:#ff9800; color:#000;">
+                        101–200<br>Unhealthy
+                    </span>
+                </div>
+                <div class="col-6 col-md-3 mb-2">
+                    <span class="badge d-block py-2"
+                          style="background:#f44336; color:#fff;">
+                        200+<br>Hazardous
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentCity = '';
+
+function fetchAQI() {
+    const city = document.getElementById('cityInput').value.trim();
+    if (!city) {
+        alert('Please enter a city name!');
+        return;
+    }
+
+    currentCity = city;
+
+    document.getElementById('loadingMsg').style.display = 'block';
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('historySection').style.display = 'none';
+
+    fetch(`/api/air-quality/${city}/`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('loadingMsg').style.display = 'none';
+
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+
+            document.getElementById('cityName').textContent = data.city;
+            document.getElementById('aqiValue').textContent = data.aqi;
+            document.getElementById('pm25Value').textContent =
+                parseFloat(data.pm25).toFixed(2);
+            document.getElementById('pm10Value').textContent =
+                parseFloat(data.pm10).toFixed(2);
+            document.getElementById('coValue').textContent =
+                parseFloat(data.co).toFixed(2);
+            document.getElementById('no2Value').textContent =
+                parseFloat(data.no2).toFixed(2);
+
+            const statusEl = document.getElementById('aqiStatus');
+            statusEl.textContent = data.status;
+
+            const colors = {
+                'Good'      : '#00e676',
+                'Moderate'  : '#ffeb3b',
+                'Unhealthy' : '#ff9800',
+                'Hazardous' : '#f44336'
+            };
+            const color = colors[data.status] || '#ffffff';
+            statusEl.style.color = color;
+            document.getElementById('aqiValue').style.color = color;
+
+            document.getElementById('resultBox').style.display = 'block';
+        })
+        .catch(err => {
+            document.getElementById('loadingMsg').style.display = 'none';
+            alert('Something went wrong! Check city name or API key.');
+            console.error(err);
+        });
+}
+
+function viewHistory() {
+    if (!currentCity) return;
+
+    fetch(`/api/history/${currentCity}/`)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('historyBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('historyCity').textContent = currentCity;
+
+            const colors = {
+                'Good'      : '#00e676',
+                'Moderate'  : '#ffeb3b',
+                'Unhealthy' : '#ff9800',
+                'Hazardous' : '#f44336'
+            };
+
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="color:#aaa;">
+                            No history found for ${currentCity}
+                        </td>
+                    </tr>`;
+            } else {
+                data.forEach(record => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${new Date(record.recorded_at).toLocaleString()}</td>
+                            <td>${record.aqi}</td>
+                            <td>${parseFloat(record.pm25).toFixed(2)}</td>
+                            <td>${parseFloat(record.pm10).toFixed(2)}</td>
+                            <td style="color:${colors[record.status]};">
+                                ${record.status}
+                            </td>
+                        </tr>`;
+                });
+            }
+
+            document.getElementById('historySection').style.display = 'block';
+
+            // Smooth scroll to history
+            document.getElementById('historySection')
+                    .scrollIntoView({ behavior: 'smooth' });
+        });
+}
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('cityInput')
+            .addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') fetchAQI();
+    });
+});
+</script>
+{% endblock %}

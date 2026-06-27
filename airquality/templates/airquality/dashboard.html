@@ -1,0 +1,175 @@
+{% extends 'airquality/base.html' %}
+
+{% block content %}
+<h2 style="color:#00d4ff;">📊 AirSense Dashboard</h2>
+<hr style="border-color:#00d4ff;">
+
+<!-- Stats Cards -->
+<div class="row mt-3" id="statsRow">
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h6 style="color:#aaa;">Total Records</h6>
+            <h3 id="totalRecords" style="color:#00d4ff;">-</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h6 style="color:#aaa;">Good</h6>
+            <h3 id="goodCount" style="color:#00e676;">-</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h6 style="color:#aaa;">Unhealthy</h6>
+            <h3 id="unhealthyCount" style="color:#ff9800;">-</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <h6 style="color:#aaa;">Hazardous</h6>
+            <h3 id="hazardousCount" style="color:#f44336;">-</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row mt-4">
+    <!-- Pie Chart -->
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5 class="card-title">🥧 Status Distribution</h5>
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Bar Chart -->
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5 class="card-title">📊 AQI Breakdown</h5>
+            <canvas id="barChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- History Table -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card p-4">
+            <h5 class="card-title">🕐 Recent Records</h5>
+            <input type="text" id="historyCity"
+                   class="form-control mb-3"
+                   placeholder="Enter city to see history"
+                   style="background:#0f1923; color:white; border:1px solid #00d4ff;">
+            <button class="btn btn-primary mb-3" onclick="loadHistory()">
+                Load History
+            </button>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>AQI</th>
+                            <th>PM2.5</th>
+                            <th>PM10</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr>
+                            <td colspan="5" class="text-center" 
+                                style="color:#aaa;">
+                                Enter a city above to load history
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load dashboard stats
+fetch('/api/dashboard/')
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('totalRecords').textContent = data.total_records;
+        document.getElementById('goodCount').textContent = data.good;
+        document.getElementById('unhealthyCount').textContent = data.unhealthy;
+        document.getElementById('hazardousCount').textContent = data.hazardous;
+
+        // Pie Chart
+        new Chart(document.getElementById('pieChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Good', 'Moderate', 'Unhealthy', 'Hazardous'],
+                datasets: [{
+                    data: [data.good, data.moderate, data.unhealthy, data.hazardous],
+                    backgroundColor: ['#00e676', '#ffeb3b', '#ff9800', '#f44336']
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { labels: { color: '#ffffff' } }
+                }
+            }
+        });
+
+        // Bar Chart
+        new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Good', 'Moderate', 'Unhealthy', 'Hazardous'],
+                datasets: [{
+                    label: 'Number of Records',
+                    data: [data.good, data.moderate, data.unhealthy, data.hazardous],
+                    backgroundColor: ['#00e676', '#ffeb3b', '#ff9800', '#f44336']
+                }]
+            },
+            options: {
+                scales: {
+                    y: { ticks: { color: '#ffffff' } },
+                    x: { ticks: { color: '#ffffff' } }
+                },
+                plugins: {
+                    legend: { labels: { color: '#ffffff' } }
+                }
+            }
+        });
+    });
+
+// Load city history
+function loadHistory() {
+    const city = document.getElementById('historyCity').value;
+    if (!city) return;
+
+    fetch(`/api/history/${city}/`)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('historyBody');
+            tbody.innerHTML = '';
+
+            const colors = {
+                'Good': '#00e676',
+                'Moderate': '#ffeb3b',
+                'Unhealthy': '#ff9800',
+                'Hazardous': '#f44336'
+            };
+
+            data.forEach(record => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${new Date(record.recorded_at).toLocaleString()}</td>
+                        <td>${record.aqi}</td>
+                        <td>${record.pm25}</td>
+                        <td>${record.pm10}</td>
+                        <td style="color:${colors[record.status]}">
+                            ${record.status}
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+}
+</script>
+{% endblock %}
