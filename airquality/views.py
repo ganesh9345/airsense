@@ -149,7 +149,9 @@ def subscribe_alert(request):
 @api_view(['GET'])
 def get_history(request, city_name):
     try:
-        city = City.objects.get(name=city_name)
+        city, created = City.objects.get_or_create(
+    name=city_name.title()
+)
         records = AirQualityRecord.objects.filter(
             city=city
         ).order_by('-recorded_at')[:20]
