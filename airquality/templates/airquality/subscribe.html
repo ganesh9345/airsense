@@ -17,8 +17,7 @@
                 <input type="email" id="emailInput"
                        class="form-control mt-1"
                        placeholder="you@example.com"
-                       style="background:#0f1923; color:white; 
-                              border:1px solid #00d4ff;">
+                       style="background:#0f1923; color:white; border:1px solid #00d4ff;">
             </div>
 
             <div class="mb-3">
@@ -26,8 +25,7 @@
                 <input type="text" id="subCityInput"
                        class="form-control mt-1"
                        placeholder="e.g. Chennai"
-                       style="background:#0f1923; color:white; 
-                              border:1px solid #00d4ff;">
+                       style="background:#0f1923; color:white; border:1px solid #00d4ff;">
             </div>
 
             <div class="mb-3">
@@ -35,8 +33,7 @@
                 <input type="number" id="thresholdInput"
                        class="form-control mt-1"
                        value="100"
-                       style="background:#0f1923; color:white; 
-                              border:1px solid #00d4ff;">
+                       style="background:#0f1923; color:white; border:1px solid #00d4ff;">
             </div>
 
             <button class="btn btn-primary w-100 mt-2"
@@ -59,7 +56,6 @@
 </div>
 
 <script>
-// Get CSRF token from cookies
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -87,11 +83,6 @@ function subscribe() {
         return;
     }
 
-    if (!email.includes('@')) {
-        showMessage('❌ Please enter a valid email!', '#f44336');
-        return;
-    }
-
     document.getElementById('loadingMsg').style.display = 'block';
     document.getElementById('subscribeBtn').disabled = true;
     document.getElementById('subMessage').style.display = 'none';
@@ -115,9 +106,7 @@ function subscribe() {
     .then(res => {
         if (!res.ok) {
             return res.json().then(err => {
-                throw new Error(
-                    err.detail || err.error || 'Server error ' + res.status
-                );
+                throw new Error(err.detail || err.error || 'Server error ' + res.status);
             });
         }
         return res.json();
@@ -131,10 +120,7 @@ function subscribe() {
             document.getElementById('emailInput').value = '';
             document.getElementById('subCityInput').value = '';
         } else {
-            showMessage(
-                '❌ ' + (data.error || 'Something went wrong!'),
-                '#f44336'
-            );
+            showMessage('❌ ' + (data.error || 'Something went wrong!'), '#f44336');
         }
     })
     .catch(err => {
@@ -148,9 +134,8 @@ function subscribe() {
 function showMessage(text, color) {
     const msg = document.getElementById('subMessage');
     msg.style.display = 'block';
-    msg.innerHTML = `<span style="color:${color}; font-size:1rem;">
-                        ${text}
-                     </span>`;
+    msg.innerHTML = `<span style="color:${color}; font-size:1rem;">${text}</span>`;
 }
 </script>
+
 {% endblock %}
