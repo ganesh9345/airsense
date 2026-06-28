@@ -134,3 +134,14 @@ EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = 'aarumugam42104@gmail.com'
 EMAIL_HOST_PASSWORD = 'knqv zupj uhtv nvah'
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [],
+}
+
+# CSRF trusted origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://airsense-ones.onrender.com',
+]

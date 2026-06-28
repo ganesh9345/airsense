@@ -10,6 +10,8 @@ from .ml_model import train_model, predict_aqi
 from .alerts import send_aqi_alert, send_welcome_email
 from django.utils import timezone
 from datetime import timedelta
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
 # ─────────────────────────────────────────
@@ -87,7 +89,11 @@ def predict_future_aqi(request):
 # ─────────────────────────────────────────
 # 4. SUBSCRIBE TO ALERTS
 # ─────────────────────────────────────────
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def subscribe_alert(request):
     email = request.data.get('email')
     city_name = request.data.get('city')
@@ -99,11 +105,9 @@ def subscribe_alert(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # ── Auto fetch city if not in DB ──
     try:
         city = City.objects.get(name=city_name)
     except City.DoesNotExist:
-        # Fetch from API automatically
         result = fetch_air_quality(city_name)
         if "error" in result:
             return Response(
@@ -124,7 +128,6 @@ def subscribe_alert(request):
         defaults={'threshold_aqi': threshold}
     )
 
-    # Send welcome email
     send_welcome_email(email, city_name, threshold)
 
     return Response({
