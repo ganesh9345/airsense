@@ -93,13 +93,30 @@ def subscribe_alert(request):
     city_name = request.data.get('city')
     threshold = request.data.get('threshold_aqi', 100)
 
+    if not email or not city_name:
+        return Response(
+            {"error": "Please provide email and city."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # ── Auto fetch city if not in DB ──
     try:
         city = City.objects.get(name=city_name)
     except City.DoesNotExist:
-        return Response(
-            {"error": "City not found. Please fetch city data first."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        # Fetch from API automatically
+        result = fetch_air_quality(city_name)
+        if "error" in result:
+            return Response(
+                {"error": f"City '{city_name}' not found. Check spelling."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            city = City.objects.get(name=city_name)
+        except City.DoesNotExist:
+            return Response(
+                {"error": "Could not save city. Try again."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     subscription, created = AlertSubscription.objects.get_or_create(
         email=email,
