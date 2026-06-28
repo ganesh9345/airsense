@@ -211,3 +211,22 @@ def trigger_alert(request):
 
     result = send_aqi_alert(city_name, float(aqi))
     return Response(result, status=status.HTTP_200_OK)
+
+from django.core.mail import send_mail
+from django.conf import settings
+
+@api_view(['GET'])
+def test_email(request):
+    try:
+        send_mail(
+            subject="AirSense Test Email",
+            message="Congratulations! Your email configuration is working.",
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=["YOUR_EMAIL@gmail.com"],   # Replace with your email
+            fail_silently=False,
+        )
+
+        return Response({"message": "Email sent successfully!"})
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

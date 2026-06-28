@@ -22,4 +22,5 @@ urlpatterns = [
          views.dashboard_data, name='dashboard_data'),
     path('api/trigger-alert/',
          views.trigger_alert, name='trigger_alert'),
+     path("test-email/", views.test_email),
 ]

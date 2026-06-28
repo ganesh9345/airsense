@@ -119,7 +119,7 @@ AirSense Team
             message=message,
             from_email=settings.EMAIL_HOST_USER,
             recipient_list=[email],
-            fail_silently=True
+            fail_silently=False
         )
 
         print("Welcome email sent.")
