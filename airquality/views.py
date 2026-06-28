@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import send_mail
@@ -10,8 +11,6 @@ from .ml_model import train_model, predict_aqi
 from .alerts import send_aqi_alert, send_welcome_email
 from django.utils import timezone
 from datetime import timedelta
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
 
 # ─────────────────────────────────────────
@@ -89,54 +88,61 @@ def predict_future_aqi(request):
 # ─────────────────────────────────────────
 # 4. SUBSCRIBE TO ALERTS
 # ─────────────────────────────────────────
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def subscribe_alert(request):
-    email = request.data.get('email')
-    city_name = request.data.get('city')
-    threshold = request.data.get('threshold_aqi', 100)
+    try:
+        email = request.data.get('email')
+        city_name = request.data.get('city')
+        threshold = request.data.get('threshold_aqi', 100)
 
-    if not email or not city_name:
-        return Response(
-            {"error": "Please provide email and city."},
-            status=status.HTTP_400_BAD_REQUEST
+        if not email or not city_name:
+            return Response(
+                {"error": "Please provide email and city."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Auto fetch city if not in DB
+        try:
+            city = City.objects.get(name__iexact=city_name)
+        except City.DoesNotExist:
+            result = fetch_air_quality(city_name)
+            if "error" in result:
+                return Response(
+                    {"error": f"City '{city_name}' not found."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            try:
+                city = City.objects.get(name__iexact=city_name)
+            except City.DoesNotExist:
+                return Response(
+                    {"error": "Could not save city. Try again."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        subscription, created = AlertSubscription.objects.get_or_create(
+            email=email,
+            city=city,
+            defaults={'threshold_aqi': threshold}
         )
 
-    try:
-        city = City.objects.get(name=city_name)
-    except City.DoesNotExist:
-        result = fetch_air_quality(city_name)
-        if "error" in result:
-            return Response(
-                {"error": f"City '{city_name}' not found. Check spelling."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Try sending welcome email
         try:
-            city = City.objects.get(name=city_name)
-        except City.DoesNotExist:
-            return Response(
-                {"error": "Could not save city. Try again."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            send_welcome_email(email, city_name, threshold)
+        except Exception as email_error:
+            print(f"Email error: {email_error}")
 
-    subscription, created = AlertSubscription.objects.get_or_create(
-        email=email,
-        city=city,
-        defaults={'threshold_aqi': threshold}
-    )
+        return Response({
+            "message": f"Successfully subscribed for {city_name}!",
+            "email": email,
+            "threshold_aqi": threshold
+        }, status=status.HTTP_200_OK)
 
-    send_welcome_email(email, city_name, threshold)
-
-    return Response({
-        "message": f"Successfully subscribed to alerts for {city_name}!",
-        "email": email,
-        "threshold_aqi": threshold
-    }, status=status.HTTP_200_OK)
-
-
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 # ─────────────────────────────────────────
 # 5. GET HISTORY OF A CITY
 # ─────────────────────────────────────────

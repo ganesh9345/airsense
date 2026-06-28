@@ -145,3 +145,5 @@ REST_FRAMEWORK = {
 CSRF_TRUSTED_ORIGINS = [
     'https://airsense-ones.onrender.com',
 ]
+# Allow all origins for API
+CORS_ALLOW_ALL_ORIGINS = True   
