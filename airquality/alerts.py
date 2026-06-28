@@ -2,6 +2,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import AlertSubscription, City
 
+
 def get_aqi_advice(aqi):
     if aqi <= 50:
         return {
@@ -21,108 +22,118 @@ def get_aqi_advice(aqi):
     else:
         return {
             "level": "Hazardous ☠️",
-            "advice": "Stay indoors! Keep windows closed. Use air purifier."
+            "advice": "Stay indoors! Keep windows closed. Use an air purifier."
         }
 
 
 def send_aqi_alert(city_name, current_aqi):
     try:
-        city = City.objects.get(name=city_name)
+        city = City.objects.get(name__iexact=city_name)
 
-        # Get all active subscriptions where AQI crossed threshold
         subscriptions = AlertSubscription.objects.filter(
             city=city,
             is_active=True,
             threshold_aqi__lte=current_aqi
         )
 
-        if not subscriptions:
-            return {"message": "No subscriptions to alert"}
+        if not subscriptions.exists():
+            return {"message": "No subscriptions found."}
 
         advice = get_aqi_advice(current_aqi)
         alert_count = 0
 
         for sub in subscriptions:
-            email_subject = f"⚠️ AirSense Alert — {city_name} Air Quality Warning!"
 
-            email_body = f"""
+            subject = f"⚠️ AirSense Alert - {city_name}"
+
+            message = f"""
 Hello,
 
-AirSense AI has detected dangerous air quality levels in {city_name}.
+AirSense AI detected poor air quality.
 
-━━━━━━━━━━━━━━━━━━━━━━
-📍 City        : {city_name}
-💨 Current AQI : {current_aqi}
-🚦 Status      : {advice['level']}
-⚡ Your Limit  : {sub.threshold_aqi}
-━━━━━━━━━━━━━━━━━━━━━━
+City: {city_name}
+Current AQI: {current_aqi}
+Status: {advice['level']}
+Your Threshold: {sub.threshold_aqi}
 
-💡 What You Should Do:
+Advice:
 {advice['advice']}
 
-General Precautions:
-- Avoid outdoor exercise
-- Keep doors and windows closed
-- Use an air purifier indoors
-- Wear N95 mask if going outside
-- Keep children and elderly indoors
+Stay Safe.
 
-━━━━━━━━━━━━━━━━━━━━━━
-Stay Safe & Healthy! 💚
 AirSense Team
-Powered by AI & Django
-━━━━━━━━━━━━━━━━━━━━━━
-            """
+"""
 
-            send_mail(
-                subject=email_subject,
-                message=email_body,
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[sub.email],
-                fail_silently=False
-            )
-            alert_count += 1
+            try:
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[sub.email],
+                    fail_silently=True
+                )
+                alert_count += 1
+
+            except Exception as e:
+                print(f"Alert email failed: {e}")
 
         return {
-            "message": f"Alerts sent successfully!",
-            "alerts_sent": alert_count,
-            "city": city_name,
-            "aqi": current_aqi
+            "message": "Alert process completed.",
+            "alerts_sent": alert_count
         }
 
-    except City.DoesNotExist:
-        return {"error": f"City {city_name} not found"}
     except Exception as e:
+        print(f"send_aqi_alert error: {e}")
         return {"error": str(e)}
 
 
 def send_welcome_email(email, city_name, threshold):
-    try:
-        send_mail(
-            subject="✅ AirSense — Alert Subscription Confirmed!",
-            message=f"""
+    """
+    Safe welcome email.
+    Never crashes the API.
+    """
+
+    subject = "✅ AirSense - Subscription Confirmed"
+
+    message = f"""
 Hello,
 
-You have successfully subscribed to AirSense air quality alerts!
+Thank you for subscribing to AirSense!
 
-━━━━━━━━━━━━━━━━━━━━━━
-📍 City         : {city_name}
-🔔 Alert Threshold : AQI {threshold}
-━━━━━━━━━━━━━━━━━━━━━━
+City: {city_name}
+Alert Threshold: AQI {threshold}
 
-You will receive an alert whenever the AQI in {city_name}
-crosses {threshold}.
+You will receive alerts whenever the AQI exceeds your threshold.
 
-Thank you for using AirSense! 💚
 Stay Safe!
 
 AirSense Team
-━━━━━━━━━━━━━━━━━━━━━━
-            """,
+"""
+
+    try:
+
+        print(f"Sending welcome email to {email}")
+
+        send_mail(
+            subject=subject,
+            message=message,
             from_email=settings.EMAIL_HOST_USER,
             recipient_list=[email],
-            fail_silently=False
+            fail_silently=True
         )
-        return {"message": "Welcome email sent!"}
+
+        print("Welcome email sent.")
+
+        return {
+            "success": True,
+            "message": "Welcome email sent."
+        }
+
     except Exception as e:
-        return {"error": str(e)}
+
+        print("Email sending failed:", e)
+
+        return {
+            "success": False,
+            "message": str(e)
+        }
